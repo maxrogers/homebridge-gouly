@@ -36,6 +36,7 @@ storage directory, then restart Homebridge.
 | `src/accessory.ts`, `src/platform.ts` | HomeKit services and accessories |
 | `homebridge-ui/` | The settings page (patterns, editor, previews, settings) |
 | `python/` | The tinytuya bridge, `check_bridge.py` and `sniff.py`; `vendor/` holds bundled libraries |
+| `assets/` | The logo: `logo.svg` (vector source) and `make_logo.py`, which generates it; `icon.png` and the settings page icon are made from it |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) and [PROTOCOL.md](PROTOCOL.md).
 

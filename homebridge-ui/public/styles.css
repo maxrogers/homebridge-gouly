@@ -36,7 +36,7 @@
   .g-group-head input { max-width: 220px; font-weight: 600; }
   .g-card select.g-move { width: auto; margin-bottom: .4rem; }
   .g-top { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .g-top img { width: 40px; height: 40px; border-radius: 9px; }
+  .g-top img { width: 40px; height: 40px; }
   .g-top .g-tabs { margin: 0; }
   .g-pick { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
   .g-pick select { width: auto; max-width: 420px; }
