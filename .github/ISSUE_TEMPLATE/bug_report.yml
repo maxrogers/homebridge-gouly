@@ -1,0 +1,53 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "**Never include your Local Key.** Check logs and config before pasting."
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: homebridge-version
+    attributes:
+      label: Homebridge version
+      placeholder: "2.4.0"
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      placeholder: "v22.x"
+  - type: dropdown
+    id: install
+    attributes:
+      label: How Homebridge runs
+      options: [Docker, Raspberry Pi image, hb-service on Linux, hb-service on macOS, hb-service on Windows, Other]
+  - type: input
+    id: controller
+    attributes:
+      label: Controller model and firmware
+      description: From the Gouly app's device settings.
+      placeholder: "GOULY single output, V55"
+  - type: dropdown
+    id: child-bridge
+    attributes:
+      label: Running as a child bridge?
+      options: ["Yes", "No"]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Homebridge log
+      description: Lines tagged Gouly, including the startup summary line. Turn on Detailed logging (Settings, Advanced) first.
+      render: text

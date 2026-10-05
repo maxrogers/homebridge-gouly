@@ -1,0 +1,81 @@
+<link rel="stylesheet" href="styles.css">
+
+<div class="g-top">
+  <img src="icon.svg" alt="">
+  <div class="g-tabs">
+    <button class="btn btn-primary" id="tabPatterns">Patterns</button>
+    <button class="btn btn-secondary" id="tabSettings">Settings</button>
+  </div>
+  <div class="g-pick" id="pickWrap" style="display:none">
+    <span>Controller</span>
+    <select id="device" class="form-select form-select-sm" aria-label="Controller"></select>
+    <span class="g-name" id="deviceName"></span>
+    <button class="btn btn-outline-danger btn-sm g-del" id="pickDelete" type="button" title="Delete this controller" aria-label="Delete this controller">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+    </button>
+  </div>
+</div>
+
+
+
+<!-- ============================ PATTERNS ============================ -->
+<div id="patterns">
+  <div class="g-toolbar">
+    <button class="btn btn-danger btn-sm" id="record">● Record</button>
+    <button class="btn btn-secondary btn-sm" id="newPattern">+ New pattern</button>
+    <span class="g-spacer"></span>
+    <button class="btn btn-outline-secondary btn-sm" id="newGroup" style="display:none">+ New group</button>
+  </div>
+
+  <div class="g-views" id="views" role="tablist"></div>
+
+  <div class="g-banner" id="banner" style="display:none">
+    <div><span class="g-dot"></span><strong>Recording</strong> <span class="g-muted" id="countdown"></span>
+      <button class="btn btn-sm btn-outline-danger ms-2" id="stop">Stop</button></div>
+    <div class="g-muted mt-1">Open the Gouly app and apply each pattern you want: built-in, your own, or downloaded.
+      Each new one appears below as you go. Duplicates are skipped.</div>
+  </div>
+
+  <div id="editor" class="g-editor" style="display:none"></div>
+
+  <section id="viewHomekit">
+    <p class="g-muted" id="homekitHelp"></p>
+    <div id="favourites"></div>
+  </section>
+
+  <section id="viewRecorded" style="display:none">
+    <div class="g-toolbar">
+      <span class="g-muted">Patterns captured while recording. Name them, then add the ones you want to HomeKit.</span>
+      <span class="g-spacer"></span>
+      <button class="btn btn-outline-secondary btn-sm" id="clear">Clear list</button>
+    </div>
+    <div class="g-grid" id="captured"></div>
+  </section>
+</div>
+
+<!-- ============================ SETTINGS ============================ -->
+<div id="settings" style="display:none">
+  <div class="g-form" id="settingsForm"></div>
+</div>
+
+<div class="g-savebar" id="saveBar" style="display:none">
+  <strong>Changes not applied yet.</strong> When you're done, click <strong>Save</strong> below to apply them to HomeKit.
+</div>
+<footer class="g-footer" id="footer"></footer>
+
+<div class="g-overlay" id="dlg" hidden>
+  <div class="g-dialog" role="dialog" aria-modal="true">
+    <h6 id="dlgTitle"></h6>
+    <div id="dlgBody"></div>
+    <input type="text" class="form-control form-control-sm" id="dlgInput" hidden>
+    <div class="g-dlg-actions">
+      <button class="btn btn-outline-danger btn-sm me-auto" id="dlgExtra" type="button" hidden></button>
+      <button class="btn btn-secondary btn-sm" id="dlgCancel" type="button">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="dlgOk" type="button">OK</button>
+      <a class="btn btn-primary btn-sm" id="dlgLink" target="_blank" rel="noopener" hidden></a>
+    </div>
+  </div>
+</div>
+
+<script src="house.js"></script>
+<script src="app.js"></script>

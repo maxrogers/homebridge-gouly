@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Getting the Device ID and Local Key
+    url: https://github.com/mikemaat/ha-gouly#1-get-your-device-id-and-local-key
+    about: Key extraction is handled by the gouly-keys tool from the ha-gouly project.

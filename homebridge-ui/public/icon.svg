@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gouly Permanent Lights">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2140"/>
+      <stop offset="1" stop-color="#0c1022"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#sky)"/>
+  <!-- house: lower roof on the left, taller main roof on the right -->
+  <path d="M86 300 L176 222 L266 300 M226 262 L336 158 L446 262" fill="none" stroke="#e9ecf5" stroke-opacity=".25"
+        stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M112 300 V392 H240 V300 M270 262 V392 H414 V262" fill="#232a4d" stroke="#3a4370" stroke-width="6"/>
+  <rect x="316" y="322" width="44" height="70" rx="6" fill="#141935"/>
+  <!-- permanent lights along both rooflines, bottom-left to top-right -->
+  <g filter="url(#glow)" opacity=".9">
+    <circle cx="86" cy="300" r="13" fill="#ff4d5a"/><circle cx="116" cy="274" r="13" fill="#ffb13d"/>
+    <circle cx="146" cy="248" r="13" fill="#4ade80"/><circle cx="176" cy="222" r="13" fill="#38bdf8"/>
+    <circle cx="206" cy="248" r="13" fill="#a78bfa"/>
+    <circle cx="266" cy="300" r="13" fill="#ffb13d"/>
+    <circle cx="262" cy="228" r="13" fill="#38bdf8"/>
+    <circle cx="299" cy="193" r="13" fill="#a78bfa"/><circle cx="336" cy="158" r="13" fill="#ff4d5a"/>
+    <circle cx="373" cy="193" r="13" fill="#ffb13d"/><circle cx="410" cy="228" r="13" fill="#4ade80"/>
+    <circle cx="446" cy="262" r="13" fill="#38bdf8"/>
+  </g>
+  <g>
+    <circle cx="86" cy="300" r="8" fill="#ffd0d4"/><circle cx="116" cy="274" r="8" fill="#ffe4b8"/>
+    <circle cx="146" cy="248" r="8" fill="#c9f7d9"/><circle cx="176" cy="222" r="8" fill="#c7ecfd"/>
+    <circle cx="206" cy="248" r="8" fill="#e4dcfe"/>
+    <circle cx="266" cy="300" r="8" fill="#ffe4b8"/>
+    <circle cx="262" cy="228" r="8" fill="#c7ecfd"/>
+    <circle cx="299" cy="193" r="8" fill="#e4dcfe"/><circle cx="336" cy="158" r="8" fill="#ffd0d4"/>
+    <circle cx="373" cy="193" r="8" fill="#ffe4b8"/><circle cx="410" cy="228" r="8" fill="#c9f7d9"/>
+    <circle cx="446" cy="262" r="8" fill="#c7ecfd"/>
+  </g>
+</svg>

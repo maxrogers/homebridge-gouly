@@ -1,0 +1,69 @@
+{
+  "name": "homebridge-gouly",
+  "displayName": "Gouly Permanent Lights",
+  "version": "1.0.0",
+  "description": "Local HomeKit control of Gouly permanent outdoor lights: on/off, brightness, colour, warm white and your Gouly app patterns, with no cloud.",
+  "author": "maxrogers",
+  "license": "MIT",
+  "homepage": "https://github.com/maxrogers/homebridge-gouly#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxrogers/homebridge-gouly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maxrogers/homebridge-gouly/issues"
+  },
+  "funding": {
+    "type": "ko-fi",
+    "url": "https://ko-fi.com/maxrogers"
+  },
+  "main": "dist/index.js",
+  "engines": {
+    "homebridge": "^1.8.0 || ^2.0.0",
+    "node": "^20.18.0 || ^22 || ^24"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "homekit",
+    "gouly",
+    "permanent lights",
+    "christmas lights",
+    "outdoor lighting",
+    "tuya",
+    "led",
+    "rgbw"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "tsc && node --test test/*.test.js",
+    "lint": "eslint ."
+  },
+  "files": [
+    "dist",
+    "homebridge-ui",
+    "python/gouly_bridge.py",
+    "python/check_bridge.py",
+    "python/sniff.py",
+    "python/vendor",
+    "config.schema.json",
+    "icon.png",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "dependencies": {
+    "@homebridge/plugin-ui-utils": "^2.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0",
+    "homebridge": "^1.8.0",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.71.0"
+  }
+}

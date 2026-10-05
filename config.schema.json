@@ -1,0 +1,177 @@
+{
+  "pluginAlias": "Gouly",
+  "pluginType": "platform",
+  "singular": true,
+  "customUi": true,
+  "headerDisplay": "Settings and patterns are managed in this plugin's own page.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "devices": {
+        "title": "Controllers",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "default": "House Lights",
+              "required": true
+            },
+            "deviceId": {
+              "title": "Device ID",
+              "type": "string",
+              "required": true
+            },
+            "localKey": {
+              "title": "Local Key",
+              "type": "string",
+              "required": true,
+              "x-schema-form": {
+                "type": "password"
+              }
+            },
+            "host": {
+              "title": "IP address",
+              "type": "string",
+              "format": "ipv4",
+              "description": "Optional. Leave empty to find the controller automatically. A DHCP reservation plus this field is fastest."
+            },
+            "protocolVersion": {
+              "title": "Tuya protocol",
+              "type": "string",
+              "default": "3.4",
+              "enum": [
+                "3.3",
+                "3.4",
+                "3.5"
+              ]
+            },
+            "controllerType": {
+              "title": "Controller type",
+              "type": "string",
+              "default": "auto",
+              "oneOf": [
+                {
+                  "title": "Detect automatically",
+                  "enum": [
+                    "auto"
+                  ]
+                },
+                {
+                  "title": "Gouly (single output)",
+                  "enum": [
+                    "classic"
+                  ]
+                },
+                {
+                  "title": "Gouly Pro (4 outputs, experimental)",
+                  "enum": [
+                    "pro"
+                  ]
+                }
+              ]
+            },
+            "powerSwitch": {
+              "title": "Add an on/off switch",
+              "type": "boolean",
+              "default": true,
+              "description": "A one-tap power switch next to the light. In the Home app, choose \"Show as Separate Tiles\" on the accessory to give it its own tile."
+            },
+            "adaptiveLighting": {
+              "title": "Offer Adaptive Lighting",
+              "type": "boolean",
+              "default": false,
+              "description": "Shifts white from warm at night to cool by day. Off by default."
+            },
+            "patternOffAction": {
+              "title": "When a pattern switch is turned off",
+              "type": "string",
+              "default": "restore",
+              "oneOf": [
+                {
+                  "title": "Go back to the last solid color",
+                  "enum": [
+                    "restore"
+                  ]
+                },
+                {
+                  "title": "Turn the lights off",
+                  "enum": [
+                    "off"
+                  ]
+                },
+                {
+                  "title": "Leave the pattern running",
+                  "enum": [
+                    "none"
+                  ]
+                }
+              ]
+            },
+            "pollSeconds": {
+              "title": "State check interval (seconds)",
+              "type": "integer",
+              "default": 60,
+              "minimum": 15
+            },
+            "patterns": {
+              "title": "Patterns in HomeKit",
+              "description": "Managed on the Patterns page above; each becomes a switch.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "title": "Name",
+                    "type": "string"
+                  },
+                  "frame": {
+                    "title": "Frame",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "pythonPath": {
+              "title": "Python 3 path",
+              "type": "string",
+              "placeholder": "python3",
+              "description": "Advanced. Only needed if Python 3 is not on the PATH."
+            },
+            "groupsEnabled": {
+              "title": "Organize patterns into groups",
+              "type": "boolean",
+              "default": false,
+              "description": "Each group becomes its own tile in the Home app. Manage groups on the Patterns tab. Turning this off puts every pattern back in one Patterns tile; switches that move are recreated in the Home app, so scenes using them need updating."
+            },
+            "groups": {
+              "title": "Pattern groups",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "verboseLogging": {
+              "title": "Detailed logging",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,79 @@
+/* Settings page styles. Colours come from the Homebridge UI theme where possible. */
+  .g-tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+  .g-toolbar { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  .g-toolbar .g-spacer { flex: 1; }
+  .g-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .9rem; margin-bottom: 1.5rem; }
+  .g-card { border: 1px solid rgba(128,128,128,.35); border-radius: 12px; padding: .6rem; position: relative; }
+  .g-card.g-playing { outline: 2px solid #34c759; }
+  .g-card .g-house { border-radius: 8px; overflow: hidden; cursor: pointer; }
+  .g-card input[type=text] { margin: .5rem 0 .4rem; font-weight: 600; }
+  .g-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .g-badge { position: absolute; top: .9rem; left: .9rem; background: #34c759; color: #fff; font-size: .7rem; padding: 1px 6px; border-radius: 6px; }
+  .g-badge.g-tag { background: rgba(60,60,67,.75); }
+  .g-muted { opacity: .7; font-size: .85em; }
+  .g-empty { opacity: .7; padding: .5rem 0 1rem; }
+  .g-banner { border-radius: 10px; padding: .75rem 1rem; margin-bottom: 1rem; background: rgba(255,59,48,.12); border: 1px solid rgba(255,59,48,.45); }
+  .g-dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; background: #ff3b30; margin-right: .4rem; animation: g-pulse 1.2s infinite; }
+  @keyframes g-pulse { 50% { opacity: .25; } }
+  .form-switch .form-check-input:checked { background-color: #34c759; border-color: #34c759; }
+  .g-editor { border: 1px solid rgba(128,128,128,.45); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; }
+  .g-editor .g-house { max-width: 520px; border-radius: 8px; overflow: hidden; margin-bottom: .75rem; }
+  .g-field { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: .6rem; }
+  .g-field > label { min-width: 90px; margin: 0; }
+  .g-swatch { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 .35rem .5rem 0; }
+  .g-swatch input[type=color] { width: 42px; height: 32px; padding: 0; border: none; background: none; }
+  .g-swatch input[type=range] { width: 42px; }
+  .g-find { border: 1px dashed rgba(128,128,128,.5); border-radius: 10px; padding: .75rem; margin-bottom: 1rem; }
+  .g-show { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 .5rem; }
+  .g-show .form-check-input { margin: 0; }
+  .g-note { font-size: .85em; opacity: .8; margin: -.25rem 0 1rem; }
+  .g-group { margin-bottom: 1.25rem; }
+  .g-views { display: flex; flex-wrap: wrap; gap: .4rem; margin: .25rem 0 1rem; }
+  .g-views button { border-radius: 999px; }
+  .g-views .g-count { opacity: .7; margin-left: .3rem; }
+  .g-rec-dot { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; background: #ff3b30; margin-right: .35rem; }
+  .g-group-head { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: .5rem; }
+  .g-group-head input { max-width: 220px; font-weight: 600; }
+  .g-card select.g-move { width: auto; margin-bottom: .4rem; }
+  .g-top { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .g-top img { width: 40px; height: 40px; border-radius: 9px; }
+  .g-top .g-tabs { margin: 0; }
+  .g-pick { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
+  .g-pick select { width: auto; max-width: 420px; }
+  .g-form { max-width: 640px; }
+  .g-form .g-row { margin-bottom: .9rem; }
+  .g-form label.g-lbl { display: block; font-weight: 600; margin-bottom: .25rem; }
+  .g-form .g-inline { display: flex; gap: .5rem; align-items: center; }
+  .g-form .g-inline input { flex: 1; }
+  .g-form .g-hint { font-size: .8em; opacity: .7; margin-top: .2rem; }
+  .g-form .g-req { color: #ff6b6b; font-size: .8em; margin-top: .2rem; }
+  .g-form details { border: 1px solid rgba(128,128,128,.35); border-radius: 10px; padding: .6rem .9rem; margin-top: 1.5rem; }
+  .g-form summary { cursor: pointer; font-weight: 600; }
+  .g-form .g-danger { border-top: 1px solid rgba(128,128,128,.35); margin-top: 1rem; padding-top: 1rem; }
+  /* In-page dialogs: the Homebridge settings frame blocks the browser's confirm()/prompt(). */
+  .g-overlay { position: absolute; left: 0; top: 0; width: 100%; background: rgba(0,0,0,.45); z-index: 1000; }
+  .g-dialog { position: absolute; left: 50%; transform: translateX(-50%); width: min(460px, 92%);
+    background: var(--bs-body-bg, #2a2a2a); color: var(--bs-body-color, inherit);
+    border: 1px solid rgba(128,128,128,.5); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  .g-dialog h6 { font-weight: 700; margin-bottom: .5rem; }
+  .g-dialog p { margin-bottom: .5rem; font-size: .92em; }
+  .g-dialog .g-dlg-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .9rem; }
+  .g-log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75em; white-space: pre-wrap;
+    background: rgba(128,128,128,.12); border-radius: 8px; padding: .5rem .65rem; margin-top: .4rem; max-height: 220px; overflow: auto; }
+  .g-info { font-size: .8em; line-height: 1.5; }
+  .g-info dt { font-weight: 600; float: left; clear: left; width: 9.5rem; opacity: .8; }
+  .g-info dd { margin: 0 0 0 9.5rem; }
+  .g-support { border-top: 1px solid rgba(128,128,128,.35); margin-top: 1.5rem; padding-top: 1rem; }
+  .g-support textarea { width: 100%; height: 160px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .72em; margin-top: .5rem; }
+  .g-savebar { margin: 1.5rem 0 0; padding: .55rem .8rem; border-radius: 8px; font-size: .9em;
+    background: rgba(255,193,7,.16); border: 1px solid rgba(255,193,7,.55); }
+  .g-note.g-dirty { opacity: 1; padding: .45rem .7rem; border-radius: 8px;
+    background: rgba(255,193,7,.16); border: 1px solid rgba(255,193,7,.55); }
+  .g-pick .g-name { font-weight: 600; }
+  .g-pick .g-del { padding: .15rem .45rem; line-height: 1; }
+  .g-pick .g-del svg { width: 15px; height: 15px; vertical-align: -2px; }
+  .g-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem 1.1rem; margin: 2.5rem 0 .5rem;
+    font-size: .78em; opacity: .75; }
+  .g-footer a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; }
+  .g-footer a:hover { opacity: 1; text-decoration: underline; }
+  .g-footer svg { width: 15px; height: 15px; flex: none; }

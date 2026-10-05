@@ -1,0 +1,30 @@
+name: Controller report
+description: Help support another controller, firmware, or an unrecognised command
+labels: [protocol]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Stop the plugin's child bridge, then run `python3 python/sniff.py /path/to/config.json`
+        from the plugin folder and use the Gouly app. **The output never contains your key.**
+  - type: input
+    id: model
+    attributes:
+      label: Controller model and firmware
+      placeholder: "Gouly Pro, V52"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did in the Gouly app, in order
+      placeholder: "12:01 set brightness to 50%\n12:02 applied the Christmas pattern"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: sniff.py output
+      render: text
+    validations:
+      required: true
