@@ -60,6 +60,17 @@
   .g-dialog .g-dlg-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .9rem; }
   .g-log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75em; white-space: pre-wrap;
     background: rgba(128,128,128,.12); border-radius: 8px; padding: .5rem .65rem; margin-top: .4rem; max-height: 220px; overflow: auto; }
+  .g-found { margin-top: .5rem; display: flex; flex-direction: column; gap: .4rem; }
+  .g-cand { display: flex; gap: .6rem; align-items: flex-start; padding: .5rem .65rem; border-radius: 8px;
+    background: rgba(128,128,128,.1); border-left: 3px solid rgba(128,128,128,.5); font-size: .85em; }
+  .g-cand.s-confirmed, .g-cand.s-connected { border-left-color: #34c759; }
+  .g-cand.s-wrong-key { border-left-color: #ff9f0a; }
+  .g-cand.s-probable { border-left-color: #0a84ff; }
+  .g-cand .g-cand-body { flex: 1; min-width: 0; }
+  .g-cand .g-cand-ip { font-weight: 600; }
+  .g-cand .g-cand-meta { opacity: .65; font-size: .9em; overflow-wrap: anywhere; }
+  .g-cand .btn { white-space: nowrap; }
+  .g-findlog summary { font-size: .8em; opacity: .7; cursor: pointer; margin-top: .4rem; }
   .g-info { font-size: .8em; line-height: 1.5; }
   .g-info dt { font-weight: 600; float: left; clear: left; width: 9.5rem; opacity: .8; }
   .g-info dd { margin: 0 0 0 9.5rem; }

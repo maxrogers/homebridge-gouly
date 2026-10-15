@@ -682,11 +682,11 @@
           <button class="btn btn-outline-secondary btn-sm" id="showKey" type="button">Show</button></div>`)}
       <div class="g-req" id="req-localKey" style="margin:-.7rem 0 .9rem">Required</div>
       <div class="g-hint" style="margin:-.5rem 0 1rem">Get these with the <a href="https://github.com/mikemaat/ha-gouly#1-get-your-device-id-and-local-key" target="_blank" rel="noopener">gouly-keys instructions</a>
-        from the ha-gouly project. It needs a Windows PC, Linux PC or Intel Mac; it does not currently work on Apple Silicon Macs.
-        Resetting or re-pairing the controller in the Gouly app changes its key.</div>
+        from the ha-gouly project (Windows, Mac or Linux). Resetting or re-pairing the controller in the Gouly app changes its key.</div>
       ${field('IP address', `<div class="g-inline"><input type="text" class="form-control" data-k="host" placeholder="Leave empty to find it automatically">
           <button class="btn btn-secondary btn-sm" id="find" type="button">Find</button></div><div class="g-hint" id="findResult"></div>
-          <div class="g-log" id="findLog" style="display:none"></div>`,
+          <div class="g-found" id="findList"></div>
+          <details class="g-findlog" id="findLogBox" style="display:none"><summary>Search log</summary><div class="g-log" id="findLog"></div></details>`,
         'Tip: give the controller a DHCP reservation in your router so the address never changes.')}
       ${check('powerSwitch', 'Add an on/off switch', 'A one-tap power switch next to the light. In the Home app, use "Show as Separate Tiles" to give it its own tile.')}
       ${field('When a pattern switch is turned off', options('patternOffAction', [['restore', 'Go back to the last solid color'], ['off', 'Turn the lights off'], ['none', 'Leave the pattern running']]))}
@@ -750,23 +750,32 @@
       k.type = k.type === 'password' ? 'text' : 'password';
       $('showKey').textContent = k.type === 'password' ? 'Show' : 'Hide';
     });
+    const useHost = ip => {
+      d.host = ip;
+      box.querySelector('[data-k="host"]').value = ip;
+      markDirty(); renderDeviceSelects();
+    };
     $('find').addEventListener('click', async () => {
       const logBox = $('findLog');
-      logBox.style.display = ''; logBox.textContent = '';
+      $('findLogBox').style.display = ''; logBox.textContent = '';
+      $('findList').innerHTML = '';
       $('find').disabled = true;
-      $('findResult').textContent = complete(d) ? 'Searching the network, up to a minute...'
-        : 'Listing Tuya devices on the network. Enter the Device ID and Local Key to confirm which is this controller.';
+      $('findResult').textContent = 'Searching the network. This takes about 30 seconds.';
       findLogTarget = logBox;
       try {
-        const r = await homebridge.request('/find', complete(d) ? d : { ...d, localKey: '' });
+        // Whatever is filled in is used: without keys, devices are still listed.
+        const r = await homebridge.request('/find', d);
+        const list = r.candidates || [];
         if (r.host) {
-          d.host = r.host;
-          box.querySelector('[data-k="host"]').value = r.host;
-          markDirty(); renderDeviceSelects();
-          $('findResult').textContent = `Found at ${r.host}.`;
+          if (d.host !== r.host) useHost(r.host);
+          $('findResult').textContent = `Found your controller at ${r.host}.`;
+        } else if (!list.length) {
+          $('findResult').textContent = 'No devices found. See the search log below.';
         } else {
-          $('findResult').textContent = complete(d) ? 'Not confirmed. See the search log below.' : '';
+          $('findResult').textContent = complete(d) ? 'Not confirmed. These devices answered:'
+            : 'These devices answered. Add the Device ID and Local Key, then Find again to confirm which one is yours.';
         }
+        renderCandidates(list, r.host);
       } catch (err) {
         $('findResult').textContent = err.message || 'Search failed.';
       } finally {
@@ -774,6 +783,21 @@
         findLogTarget = null;
       }
     });
+    function renderCandidates(list, host) {
+      const box2 = $('findList');
+      box2.innerHTML = list.map((c, i) => {
+        const meta = [c.mac && `MAC ${c.mac}${c.vendor ? ` (${c.vendor})` : ''}`, c.name].filter(Boolean).join(' · ');
+        const button = c.ip === host || c.ip === d.host ? '<span class="g-hint">In use</span>'
+          : `<button class="btn btn-outline-secondary btn-sm" type="button" data-use="${i}">Use this IP</button>`;
+        return `<div class="g-cand s-${esc(c.status)}"><div class="g-cand-body">
+          <div class="g-cand-ip">${esc(c.ip)}</div>${meta ? `<div class="g-cand-meta">${esc(meta)}</div>` : ''}
+          <div>${esc(c.note)}</div></div>${button}</div>`;
+      }).join('');
+      box2.querySelectorAll('[data-use]').forEach(b => b.addEventListener('click', () => {
+        useHost(list[Number(b.dataset.use)].ip);
+        renderCandidates(list, host);
+      }));
+    }
     loadInfo(d);
     $('refreshInfo').addEventListener('click', async () => {
       $('refreshInfo').disabled = true;

@@ -1,7 +1,7 @@
 {
   "name": "homebridge-gouly",
   "displayName": "Gouly Permanent Lights",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local HomeKit control of Gouly permanent outdoor lights: on/off, brightness, colour, warm white and your Gouly app patterns, with no cloud.",
   "author": "maxrogers",
   "license": "MIT",
@@ -37,13 +37,14 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test": "tsc && node --test test/*.test.js",
+    "test": "tsc && node --test --test-timeout=180000 test/*.test.js",
     "lint": "eslint ."
   },
   "files": [
     "dist",
     "homebridge-ui",
     "python/gouly_bridge.py",
+    "python/gouly_probe.py",
     "python/check_bridge.py",
     "python/sniff.py",
     "python/vendor",

@@ -8,7 +8,10 @@ with Tuya protocol 3.4. The Gouly Pro uses a different command set, documented b
 
 The controller is a Tuya Wi-Fi module on TCP port 6668. Firmware V50 and V55 use Tuya
 protocol 3.4; the plugin also tries 3.5 and 3.3 automatically if 3.4 is rejected. It does not answer Tuya's
-UDP discovery, so it has to be found by scanning for port 6668 and trying the key.
+UDP discovery, so it has to be found by scanning for port 6668 (see Discovery in ARCHITECTURE.md).
+It is slow to accept connections and to complete the session handshake (allow several seconds).
+Without the key it can still be recognised: like other protocol 3.4 devices it closes the
+connection when sent an unencrypted query, and its Wi-Fi module has a Tuya MAC prefix.
 
 | DP | Type | Use |
 |---|---|---|

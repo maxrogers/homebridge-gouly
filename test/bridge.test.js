@@ -125,3 +125,19 @@ test('a network error does not cycle through protocol versions', async () => {
   conn.stop();
   assert.deepEqual(read().filter(e => e.op === 'status').map(e => e.version), [3.4]);
 });
+
+test('a device that refuses the key is reported as rejected, not unreachable', async () => {
+  setup();
+  const conn = new GoulyConnection({ id: 'bf0123', key: 'k', host: '10.0.0.66', version: '3.4', log: quiet });
+  let unreachable = false;
+  conn.on('unreachable', () => { unreachable = true; });
+  try {
+    conn.start();
+    assert.equal(await once(conn, 'rejected', 8000), '10.0.0.66');
+    await new Promise(r => setTimeout(r, 7000)); // several retries
+    assert.equal(unreachable, false, 'something answers there, so no network search');
+    assert.equal(conn.isConnected, false);
+  } finally {
+    conn.stop();
+  }
+});

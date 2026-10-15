@@ -1,7 +1,7 @@
 import type { API, Logger, PlatformAccessory, Service } from 'homebridge';
 import { hsToRgbw, MIRED_MAX, MIRED_MIN, miredToRgbw, Rgbw, rgbwToHomeKit } from './colour';
 import { GoulyConnection } from './connection';
-import { confirmController, guidedSearch } from './discovery';
+import { Candidate, guidedSearch } from './discovery';
 import { ClassicDriver, validatePatternBody } from './protocol/classic';
 import { describePattern } from './patterns/describe';
 import { Driver, fromHex, StateUpdate, toHex } from './protocol/frame';
@@ -159,12 +159,19 @@ export class GoulyAccessory {
     this.conn.on('connected', ({ host, protocol }) => { this.diag.connected(host, protocol); this.onConnected(); });
     this.conn.on('disconnected', reason => this.diag.disconnected(reason));
     this.conn.on('unreachable', () => void this.rediscover());
+    this.conn.on('rejected', host => {
+      this.diag.event(`${host} answered but did not accept the Local Key`);
+      this.log.warn(`${this.cfg.name}: the device at ${host} answered but did not accept the Local Key. `
+        + 'If the controller was reset or re-added in the Gouly app, its key changed: get the keys again (see the plugin settings).');
+      void this.rediscover(true);
+    });
     if (cfg.host) this.conn.start();
     else void this.rediscover();
 
     api.on('shutdown', () => {
       clearInterval(this.pollTimer);
       this.commands.flushNow();
+      this.diag.stopped();
       void this.diag.flush();
       this.control.stop();
       this.conn.stop();
@@ -173,39 +180,38 @@ export class GoulyAccessory {
 
   private discovering = false;
 
-  /** Find the controller on the LAN (no host configured, or it stopped answering). */
   /**
-   * Find the controller when its address is unknown or it stops answering (for
-   * example after a DHCP change). The last known address is tried first; a full
-   * search runs at most once per outage, then backs off from 5 minutes to 1 hour.
-   * Each step is written to the diagnostics for the debug report.
+   * Find the controller when its address is unknown, it stops answering (for
+   * example after a DHCP change), or the device at its address refuses the key
+   * (the address may now belong to another device). The saved address is checked
+   * first; a full search runs at most once per outage, then backs off from 5
+   * minutes to 1 hour. Each step is written to the diagnostics for the debug report.
    */
-  private async rediscover(): Promise<void> {
+  private async rediscover(afterRejection = false): Promise<void> {
     if (this.discovering) return;
     this.discovering = true;
     try {
-      this.log.info(this.cfg.host ? `${this.cfg.name} not answering at ${this.conn.currentHost}; searching the network`
-        : `Searching the network for ${this.cfg.name}`);
       const hint = this.conn.currentHost;
-      const confirmed = hint && await confirmController(hint, this.cfg.deviceId, this.cfg.localKey,
-        this.cfg.protocolVersion ?? '3.4', 8000, this.cfg.pythonPath);
-      const host = confirmed ? hint : (await guidedSearch({
+      this.log.info(afterRejection ? `${this.cfg.name}: checking the network in case the controller moved`
+        : hint ? `${this.cfg.name} not answering at ${hint}; searching the network`
+          : `Searching the network for ${this.cfg.name}`);
+      const { host, candidates } = await guidedSearch({
         id: this.cfg.deviceId, key: this.cfg.localKey, version: this.cfg.protocolVersion ?? '3.4', hint,
-        pythonPath: this.cfg.pythonPath,
+        pythonPath: this.cfg.pythonPath, stopWhenConfirmed: true,
         onLine: line => { this.log.debug(line); this.diag.event(`search: ${line}`); },
-      })).host;
+      });
       if (host) {
         this.rediscoverDelay = REDISCOVER_MIN_MS;
-        if (host !== this.conn.currentHost) {
+        if (host !== hint) {
           this.log.info(`Found ${this.cfg.name} at ${host}. Tip: give it a DHCP reservation and set it in the config.`);
         }
         this.conn.setHost(host);
-      } else {
-        this.log.warn(`Could not find ${this.cfg.name}. Check that it is powered and that the Device ID and Local Key are current.`);
-        if (!this.conn.currentHost) {
-          setTimeout(() => void this.rediscover(), this.rediscoverDelay);
-          this.rediscoverDelay = Math.min(this.rediscoverDelay * 2, REDISCOVER_MAX_MS);
-        }
+        return;
+      }
+      this.log.warn(`Could not find ${this.cfg.name}. ${explainNotFound(candidates)}`);
+      if (!hint) {
+        setTimeout(() => void this.rediscover(), this.rediscoverDelay);
+        this.rediscoverDelay = Math.min(this.rediscoverDelay * 2, REDISCOVER_MAX_MS);
       }
     } finally {
       this.discovering = false;
@@ -581,4 +587,18 @@ export class GoulyAccessory {
       }
     }
   }
+}
+
+/** One plain sentence or two for the log when the search did not confirm the controller. */
+export function explainNotFound(candidates: Candidate[]): string {
+  const wrong = candidates.filter(c => c.status === 'wrong-key').map(c => c.ip);
+  const likely = candidates.filter(c => c.status === 'probable' || c.status === 'possible').map(c => c.ip);
+  if (wrong.length) {
+    return `Tuya device${wrong.length > 1 ? 's' : ''} at ${wrong.join(', ')} did not accept the Local Key. `
+      + 'If one is your controller, its key changed: get the keys again.';
+  }
+  if (likely.length) {
+    return `Devices at ${likely.join(', ')} answer on the Tuya port but could not be confirmed. Check the Device ID and Local Key.`;
+  }
+  return 'No devices answered on the Tuya port. Check that it is powered and on the same network as Homebridge.';
 }

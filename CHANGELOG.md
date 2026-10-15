@@ -5,6 +5,26 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
+### Fixed
+- A slow controller handshake was reported as a wrong key ("Check device key or version"), which
+  made the plugin think the controller was gone and search the network. The bridge now allows
+  5 seconds to connect and negotiate, then reads with a short timeout as before.
+- Find missed slow controllers (0.8 s port timeout) and scanned Docker and VPN networks. It now uses
+  3 seconds, retries slow hosts that exist, and skips virtual interfaces.
+- Settings and README said gouly-keys does not work on Apple Silicon Macs. It does, when run natively
+  (not under Rosetta).
+
+### Changed
+- Find lists every device answering on the Tuya port, with or without keys, each with its MAC
+  address, a short note and a Use this IP button: your controller, a Tuya device that did not accept
+  this Local Key, or a probable Tuya device when no key is entered yet.
+- Find recognises Tuya devices without a key (protocol fingerprint, Tuya MAC prefixes, UDP
+  announcements) and checks a key with a single handshake.
+- When the controller answers but refuses the key, the log says so plainly instead of "not
+  answering", and the plugin checks once whether the controller moved to another address.
+
 ## [1.0.0] - 2026-10-01
 
 First public release.

@@ -35,7 +35,7 @@
 ## Setup
 
 1. Install **homebridge-gouly** from the Plugins tab in the Homebridge UI.
-2. Get your controller's Device ID and Local Key with the [gouly-keys instructions](https://github.com/mikemaat/ha-gouly#1-get-your-device-id-and-local-key) from the ha-gouly project. It needs a Windows PC, Linux PC or Intel Mac; it does not currently work on Apple Silicon Macs. Resetting or re-pairing the controller in the Gouly app changes its key.
+2. Get your controller's Device ID and Local Key with the [gouly-keys instructions](https://github.com/mikemaat/ha-gouly#1-get-your-device-id-and-local-key) from the ha-gouly project. It runs on Windows, Mac (Intel or Apple Silicon) or Linux; on an Apple Silicon Mac, run it in a normal Terminal, not under Rosetta. Resetting or re-pairing the controller in the Gouly app changes its key.
 3. Open the plugin's settings, go to **Settings**, and enter a name, the Device ID and the Local Key. Press **Find** to locate the controller on your network, or type its IP address. Giving it a DHCP reservation in your router is recommended.
 4. Press **Save** and restart Homebridge. Running the plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) is recommended.
 
@@ -64,7 +64,9 @@ Each pattern becomes a switch in the **House Lights Patterns** accessory; turnin
 
 **Reporting a problem:** turn on **Detailed logging** (Settings, Advanced), reproduce the problem, then use **Download debug report** at the bottom of the Settings tab and attach the file to a [bug report](https://github.com/maxrogers/homebridge-gouly/issues/new?template=bug_report.yml). The report gathers your settings, what the controller reported (type, firmware, pixel count, LED settings), connection history, recent commands, the last network search and the plugin's log lines. It never contains your Local Key, and *Hide IP and MAC addresses* masks network details. Settings, Advanced, **Controller info** shows what the controller last reported, with a **Refresh from controller** button.
 
-**Find** (next to the IP address) explains what it is doing: which devices answer on the Tuya port, their MAC addresses, and, once the Device ID and Local Key are entered, which one accepts the key and what type of controller it is.
+**Find** (next to the IP address) lists every device that answers on the Tuya port, even before you have the keys, with its MAC address and a short note: *Your controller* when the Local Key works, *Did not accept this Local Key* when a Tuya device is there but the key is out of date, or *Probably a Tuya device* when no key is entered yet. **Use this IP** fills in the address. Gouly controllers answer slowly and do not announce themselves, so a search takes about 30 seconds.
+
+**"Did not accept the Local Key" in the log** means the controller was found but the key no longer matches. Resetting the controller or re-adding it in the Gouly app gives it a new key: get the keys again and enter them in Settings.
 
 To check the connection outside Homebridge, stop the plugin's child bridge and run:
 

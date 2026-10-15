@@ -173,8 +173,13 @@ class GoulyUiServer extends HomebridgePluginUiServer {
       lines.push(stamped);
       this.pushEvent('find-progress', { line: stamped });
     };
+    // If the running plugin is connected to this controller right now, say so
+    // rather than opening a second connection to it.
+    const info = deviceId ? await this.readJson(this.file('info', deviceId), null) : null;
+    const fresh = info?.updated && Date.now() - new Date(info.updated).getTime() < 10 * 60_000;
+    const connectedHost = info?.connectedSince && fresh ? info.host : undefined;
     const result = await guidedSearch({ id: deviceId, key: localKey, version: protocolVersion || '3.4',
-      hint: host || undefined, pythonPath, onLine });
+      hint: host || undefined, connectedHost, pythonPath, onLine });
     await fs.mkdir(this.dir, { recursive: true });
     await fs.writeFile(path.join(this.dir, 'find-last.json'),
       JSON.stringify({ at: new Date().toISOString(), deviceId: deviceId || null, lines, candidates: result.candidates }, null, 2));

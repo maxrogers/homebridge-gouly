@@ -10,7 +10,9 @@ def _record(entry):
             f.write(json.dumps(entry) + "\n")
 
 class Device:
-    def __init__(self, dev_id, address=None, local_key="", version=3.3):
+    socket = None
+
+    def __init__(self, dev_id, address=None, local_key="", version=3.3, connection_timeout=5):
         self.address, self.key, self.version = address, local_key, version
         self.inbox, self.timeout = [], 0.2
     def set_socketPersistent(self, p): pass
@@ -20,6 +22,8 @@ class Device:
         _record({"op": "status", "host": self.address, "key": self.key, "version": self.version})
         if self.address == "10.0.0.250":
             return {"Error": "Network Error: Unable to Connect", "Err": "901"}
+        if self.address == "10.0.0.66":  # answers, but holds a different key
+            return {"Error": "Check device key or version", "Err": "914"}
         want = os.environ.get("MOCK_TUYA_VERSION")
         if want and float(want) != float(self.version):
             return {"Error": "Check device key or version", "Err": "914"}

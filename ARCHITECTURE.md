@@ -102,14 +102,40 @@ last 5 seconds are never recorded as patterns.
 
 ## Discovery
 
-The controller does not broadcast, so setup finds it by scanning the local /24 for TCP 6668 and
-trying the device id and key against each candidate: only the right controller completes the
-encrypted handshake. The same search runs automatically if the controller stops answering at its
-known address (DHCP change). A port scan alone can say "a Tuya device is here", not which one;
-the key check identifies it, and a state query identifies the controller type. The search
-narrates each step (shown live by Find, and saved for the debug report). Automatic searches run
-once per outage and back off from 5 minutes to 1 hour while the controller stays missing.
-MAC prefixes are Tuya-wide and do not identify the model; the Tuya product id does.
+Gouly controllers do not answer Tuya's UDP discovery and are slow to accept connections, so
+`src/discovery.ts` combines the methods of ha-gouly's gouly-keys and tinytuya's scanner:
+
+1. **Networks.** The /24 of each real LAN interface. Docker, VPN (Tailscale, WireGuard) and other
+   virtual interfaces, and 100.64.0.0/10, are skipped: a controller is never behind them.
+2. **Port sweep.** The saved IP and ARP-known Tuya MAC addresses first (6 s timeout), then the
+   rest for TCP 6668 with a 3 s timeout and 32 at a time (ha-gouly uses the same: an aggressive scan
+   misses these controllers). Hosts in the ARP table that timed out get a second, 6 s try.
+3. **Probe** (`python/gouly_probe.py`, one process per search, hosts streamed to it as they are
+   found). Without a key: an unencrypted status query, which protocol 3.1/3.3 devices answer and
+   3.4/3.5 devices (Gouly) answer by closing the connection. With a key: a protocol 3.4 session
+   handshake signed with it; only a device holding that key answers with a correctly signed reply.
+   A 3.3 (and, with AES-GCM available, 3.5) status request is the fallback. Meanwhile it listens on
+   UDP 6666/6667/7000 for announcements (and asks 3.5 devices to announce), in case the firmware does.
+4. **Labels.** MAC from the ARP table, matched against Tuya Smart Inc.'s registered prefixes (a
+   Tuya module, not proof of Gouly), and the reverse DNS name.
+5. **Ranking.** Each device gets a status and one plain sentence: confirmed (the key works),
+   connected (the running plugin holds a session to it, so it is not probed again), wrong key (a
+   Tuya device that refused this key), probable (Tuya-like, no key to check), possible (port open,
+   not Tuya-like) or other (announced a different Device ID). Confirmed devices are connected once
+   through the bridge to identify the controller type; if none passed the quick check, the three
+   most likely get that full test too.
+
+The settings page lists the results with Use this IP; the narrated log is saved for the debug
+report. The plugin runs the same search, stopping as soon as the controller is confirmed, when no
+IP is set, when the controller stops answering (DHCP change), or once when the device at its
+address refuses the key (the address may now belong to another device). Automatic searches back
+off from 5 minutes to 1 hour.
+
+**Connection timing.** tinytuya uses one timeout for connecting, the session handshake and reads.
+A short one turns a slow handshake into "Check device key or version" (Err 914), the same error
+as a wrong key. The bridge connects and negotiates with 5 s and switches the socket to 0.5 s reads
+once the session is up. Err 914 means something answered at the address, so the bridge reports it
+as `rejected` (logged as a key problem) rather than counting it towards `unreachable`.
 
 ## Settings UI
 

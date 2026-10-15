@@ -72,6 +72,12 @@ export class ControllerDiagnostics {
     this.event(`disconnected: ${reason}`);
   }
 
+  /** Homebridge is shutting down: the connection ends without a disconnect event. */
+  stopped(): void {
+    this.info.connectedSince = undefined;
+    this.event('Homebridge stopped');
+  }
+
   event(message: string): void {
     push(this.info.events, `${new Date().toISOString()} ${message}`, RECENT_EVENTS);
     this.save();

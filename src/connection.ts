@@ -35,6 +35,11 @@ export class GoulyConnection extends EventEmitter {
   on(event: 'disconnected', listener: (reason: string) => void): this;
   /** Emitted after repeated failures to connect; the IP may have changed. */
   on(event: 'unreachable', listener: () => void): this;
+  /**
+   * The device at the current address answered but did not accept the Device ID
+   * and Local Key (on any protocol version). Emitted once per run of failures.
+   */
+  on(event: 'rejected', listener: (host: string) => void): this;
   on(event: string, listener: (...args: any[]) => void): this {
     return super.on(event, listener);
   }
@@ -156,6 +161,9 @@ export class GoulyConnection extends EventEmitter {
         break;
       case 'unreachable':
         this.emit('unreachable');
+        break;
+      case 'rejected':
+        this.emit('rejected', String(msg.host ?? this.host));
         break;
       case 'frame': {
         this.opts.log.debug(`<- ${msg.hex}`);

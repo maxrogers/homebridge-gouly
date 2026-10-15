@@ -12,6 +12,8 @@ stdout (bridge -> plugin), one JSON object per line:
   {"event": "connected", "host": ...}
   {"event": "disconnected", "reason": ...}
   {"event": "unreachable"}                       several connect attempts failed
+  {"event": "rejected", "host": ...}             the device answered but refused the key
+                                                 (on every protocol version)
   {"event": "frame", "hex": "aaf101..."}         DP 101 frame from the controller
   {"event": "switch", "on": true}                DP 20
   {"event": "log", "level": "debug|info|warn", "msg": ...}
@@ -45,10 +47,15 @@ DP_TRANSPARENT = "101"
 DP_SWITCH = "20"
 FRAME_GAP = 0.2          # seconds between frames, like the Gouly app
 HEARTBEAT_EVERY = 8.0    # Tuya devices drop idle connections
-RECV_TIMEOUT = 0.5       # socket timeout while waiting for data
+CONNECT_TIMEOUT = 5.0    # connect and session handshake; Gouly controllers answer slowly
+RECV_TIMEOUT = 0.5       # socket timeout while waiting for data once connected
 UNREACHABLE_AFTER = 4
 
 _out_lock = threading.Lock()
+
+
+class KeyRejected(Exception):
+    """The device answered on the Tuya port but did not accept the key."""
 
 
 def emit(**event):
@@ -66,18 +73,35 @@ def log(level, msg):
     emit(event="log", level=level, msg=msg)
 
 
+class GoulyDevice(tinytuya.Device):
+    """tinytuya uses one timeout for connecting, the session handshake and every
+    read. A short one makes a slow handshake fail as "Check device key or
+    version" (Err 914), exactly like a wrong key. So connect and handshake with
+    CONNECT_TIMEOUT, and switch to recv_timeout once the session is up
+    (including after tinytuya reconnects on its own)."""
+    recv_timeout = None
+
+    def _get_socket(self, renew):
+        result = super()._get_socket(renew)
+        if result is True and self.socket is not None and self.recv_timeout:
+            self.socket.settimeout(self.recv_timeout)
+        return result
+
+
 class Bridge:
     def __init__(self, cfg):
         self.id = cfg["id"]
         self.key = cfg["key"]
         self.host = cfg.get("host")
         self.version = float(cfg.get("version", "3.4"))
+        self.port = int(cfg.get("port", 6668))  # tests use another port
         self.commands = queue.Queue()
         self.device = None
         self.running = True
         self.failures = 0
         self.backoff = 2.0
         self.warned_gcm = False
+        self.rejected = False
 
     # ------------------------------------------------------------ stdin
     def read_stdin(self):
@@ -113,12 +137,15 @@ class Bridge:
         return order
 
     def open_session(self, version):
-        d = tinytuya.Device(self.id, self.host, self.key, version=version)
+        d = GoulyDevice(self.id, self.host, self.key, version=version, connection_timeout=CONNECT_TIMEOUT)
+        d.port = self.port
         d.set_socketPersistent(True)
-        d.set_socketTimeout(RECV_TIMEOUT)
         d.set_socketRetryLimit(1)
         status = d.status()
         if isinstance(status, dict) and "Error" not in status:
+            d.recv_timeout = RECV_TIMEOUT
+            if getattr(d, "socket", None) is not None:
+                d.socket.settimeout(RECV_TIMEOUT)
             return d, status, None
         try:
             d.close()
@@ -131,10 +158,14 @@ class Bridge:
         """Open a persistent session; status() completes the handshake.
 
         A wrong protocol version fails the same way as a wrong key (Err 914), so on
-        that error the other versions are tried before giving up.
+        that error the other versions are tried before giving up. Err 914 means the
+        device accepted the TCP connection but not the key (or version): that is
+        reported as "rejected" and not counted towards "unreachable", because
+        something is answering at this address.
         """
         self.close()
         last = None
+        answered = False  # Err 914 on any version: the TCP connection worked
         for version in self.versions_to_try():
             d, status, err = self.open_session(version)
             if d is not None:
@@ -151,6 +182,9 @@ class Bridge:
             last = err
             if str(err.get("Err")) != "914":
                 break  # a network error: other versions won't help
+            answered = True
+        if answered:
+            raise KeyRejected(self.host)
         raise ConnectionError(str((last or {}).get("Error", "connection failed")))
 
     def drop(self, reason):
@@ -211,8 +245,19 @@ class Bridge:
                 try:
                     self.connect()
                     last_beat = time.time()
+                    self.rejected = False
+                except KeyRejected:
+                    log("debug", "connect failed: %s answered but did not accept the key" % self.host)
+                    if not self.rejected:
+                        self.rejected = True
+                        emit(event="rejected", host=self.host)
+                    self.failures = 0  # it answered, so it is not unreachable
+                    if not self.wait_for_command_or_timeout(self.backoff):
+                        break
+                    self.backoff = min(self.backoff * 2, 60.0)
                 except Exception as e:  # noqa: BLE001
                     self.failures += 1
+                    self.rejected = False
                     log("debug", "connect failed: %s" % e)
                     if self.failures == UNREACHABLE_AFTER:
                         emit(event="unreachable")
@@ -256,6 +301,7 @@ class Bridge:
             if cmd.get("cmd") == "host":
                 self.host = cmd.get("host")
                 self.failures = 0
+                self.rejected = False
                 self.backoff = 2.0
                 break
             if cmd.get("cmd") == "send":
