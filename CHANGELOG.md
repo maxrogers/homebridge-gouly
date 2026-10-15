@@ -5,6 +5,13 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-15
+
+### Fixed
+- Settings schema: required fields are listed at the object level (JSON Schema), and the platform
+  has a name property, as the Homebridge verification checks require.
+- package.json declares the `supports-hap` keyword.
+
 ## [1.0.1] - 2026-10-15
 
 ### Fixed

@@ -7,6 +7,12 @@
   "schema": {
     "type": "object",
     "properties": {
+      "name": {
+        "title": "Platform name",
+        "type": "string",
+        "default": "Gouly",
+        "description": "Shown in the Homebridge log."
+      },
       "devices": {
         "title": "Controllers",
         "type": "array",
@@ -16,18 +22,15 @@
             "name": {
               "title": "Name",
               "type": "string",
-              "default": "House Lights",
-              "required": true
+              "default": "House Lights"
             },
             "deviceId": {
               "title": "Device ID",
-              "type": "string",
-              "required": true
+              "type": "string"
             },
             "localKey": {
               "title": "Local Key",
               "type": "string",
-              "required": true,
               "x-schema-form": {
                 "type": "password"
               }
@@ -169,7 +172,12 @@
               "type": "boolean",
               "default": false
             }
-          }
+          },
+          "required": [
+            "name",
+            "deviceId",
+            "localKey"
+          ]
         }
       }
     }

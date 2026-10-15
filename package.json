@@ -1,7 +1,7 @@
 {
   "name": "homebridge-gouly",
   "displayName": "Gouly Permanent Lights",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Local HomeKit control of Gouly permanent outdoor lights: on/off, brightness, colour, warm white and your Gouly app patterns, with no cloud.",
   "author": "maxrogers",
   "license": "MIT",
@@ -24,6 +24,7 @@
   },
   "keywords": [
     "homebridge-plugin",
+    "supports-hap",
     "homebridge",
     "homekit",
     "gouly",

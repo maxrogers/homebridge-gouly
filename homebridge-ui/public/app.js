@@ -77,8 +77,9 @@
   let config, platform, deviceIndex = 0;
   const adopt = cfg => {
     const previous = platform ? platform.devices : [];
-    config = cfg && cfg.length ? cfg : [{ platform: 'Gouly', devices: [] }];
+    config = cfg && cfg.length ? cfg : [{ platform: 'Gouly', name: 'Gouly', devices: [] }];
     platform = config[0];
+    platform.name = platform.name || 'Gouly';
     platform.devices = platform.devices || [];
     // The Settings form doesn't show the patterns list; if an edit there comes back
     // without it, keep the patterns we already had for that controller.
