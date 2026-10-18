@@ -34,6 +34,8 @@ export class GoulyPlatform implements DynamicPlatformPlugin {
         accessory = new this.api.platformAccessory(device.name, uuid);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         this.log.info(`Added ${device.name}`);
+      } else {
+        this.rename(accessory, device.name);
       }
       // Pattern switches live in their own accessory (one per group when grouping is on),
       // so the light keeps just the slider and power switch.
@@ -78,13 +80,23 @@ export class GoulyPlatform implements DynamicPlatformPlugin {
         acc = new this.api.platformAccessory(name, uuid, this.api.hap.Categories.SWITCH);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
         this.log.info(`Added ${name}`);
-      } else if (acc.displayName !== name) {
-        acc.displayName = name;
-        acc.getService(this.api.hap.Service.AccessoryInformation)?.setCharacteristic(this.api.hap.Characteristic.Name, name);
-        this.api.updatePlatformAccessories([acc]);
+      } else {
+        this.rename(acc, name);
       }
       out.push({ accessory: acc, patterns });
     }
     return out;
+  }
+
+  /**
+   * Apply a name changed in the settings to a cached accessory. updateDisplayName
+   * also renames the underlying HAP accessory (assigning displayName does not).
+   * The Home app keeps any name the user set there.
+   */
+  private rename(acc: PlatformAccessory, name: string): void {
+    if (acc.displayName === name) return;
+    acc.updateDisplayName(name);
+    acc.getService(this.api.hap.Service.AccessoryInformation)?.setCharacteristic(this.api.hap.Characteristic.Name, name);
+    this.api.updatePlatformAccessories([acc]);
   }
 }

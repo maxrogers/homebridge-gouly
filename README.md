@@ -5,6 +5,7 @@
 <p align="center">Control Gouly permanent outdoor lights from Apple Home, locally, with no cloud.</p>
 
 <p align="center">
+  <a href="https://github.com/homebridge/homebridge/wiki/Verified-Plugins"><img src="https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=flat" alt="verified-by-homebridge"></a>
   <a href="https://www.npmjs.com/package/homebridge-gouly"><img src="https://img.shields.io/npm/v/homebridge-gouly" alt="npm"></a>
   <a href="https://github.com/maxrogers/homebridge-gouly/actions"><img src="https://github.com/maxrogers/homebridge-gouly/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT"></a>

@@ -5,6 +5,16 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-18
+
+### Fixed
+- Renaming a controller or pattern group in the settings now renames its cached accessory in
+  Homebridge (uses `updateDisplayName`). Previously the light kept its old name, and a renamed
+  group only partly updated. Names you set in the Home app are not changed.
+
+### Changed
+- README shows the Verified by Homebridge badge.
+
 ## [1.0.2] - 2026-10-15
 
 ### Fixed
