@@ -65,9 +65,13 @@ Each pattern becomes a switch in the **House Lights Patterns** accessory; turnin
 
 **Reporting a problem:** turn on **Detailed logging** (Settings, Advanced), reproduce the problem, then use **Download debug report** at the bottom of the Settings tab and attach the file to a [bug report](https://github.com/maxrogers/homebridge-gouly/issues/new?template=bug_report.yml). The report gathers your settings, what the controller reported (type, firmware, pixel count, LED settings), connection history, recent commands, the last network search and the plugin's log lines. It never contains your Local Key, and *Hide IP and MAC addresses* masks network details. Settings, Advanced, **Controller info** shows what the controller last reported, with a **Refresh from controller** button.
 
-**Find** (next to the IP address) lists every device that answers on the Tuya port, even before you have the keys, with its MAC address and a short note: *Your controller* when the Local Key works, *Did not accept this Local Key* when a Tuya device is there but the key is out of date, or *Probably a Tuya device* when no key is entered yet. **Use this IP** fills in the address. Gouly controllers answer slowly and do not announce themselves, so a search takes about 30 seconds.
+**Find** (next to the IP address) lists every device that answers on the Tuya port, even before you have the keys, with its MAC address and a short note: *Your controller* when the Local Key works, *Did not accept this Local Key* when a Tuya device is there but the key is out of date, or *Probably a Tuya device* when no key is entered yet. **Use this IP** fills in the address. Gouly controllers answer slowly, so a search takes about 30 seconds.
 
 **"Did not accept the Local Key" in the log** means the controller was found but the key no longer matches. Resetting the controller or re-adding it in the Gouly app gives it a new key: get the keys again and enter them in Settings.
+
+**"Refusing connections" in the log** means the key worked recently but the controller now turns connections away. After a Wi-Fi drop-out it can hold on to the old connection; unplug it for 10 seconds (once: several quick power cycles put it into pairing mode, which changes the key).
+
+**Frequent "Connection lost" or No Response** usually means a weak Wi-Fi signal at the controller, which is often mounted outside. On the router's 2.4 GHz band, turn off any setting that disconnects weak clients (ASUS: *Roaming assistant*), use a 20 MHz channel width on channel 1, 6 or 11, and bind the controller to the nearest mesh node. While the controller is unreachable, the Home app shows No Response, and changes made then are not replayed later.
 
 To check the connection outside Homebridge, stop the plugin's child bridge and run:
 

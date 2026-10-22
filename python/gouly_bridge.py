@@ -50,6 +50,7 @@ HEARTBEAT_EVERY = 8.0    # Tuya devices drop idle connections
 CONNECT_TIMEOUT = 5.0    # connect and session handshake; Gouly controllers answer slowly
 RECV_TIMEOUT = 0.5       # socket timeout while waiting for data once connected
 UNREACHABLE_AFTER = 4
+STALE_SEND = float(os.environ.get("GOULY_STALE_SEND", 30.0))  # drop sends queued longer than this (tests shorten it)
 
 _out_lock = threading.Lock()
 
@@ -110,7 +111,10 @@ class Bridge:
             if not line:
                 continue
             try:
-                self.commands.put(json.loads(line))
+                cmd = json.loads(line)
+                if isinstance(cmd, dict):
+                    cmd["_at"] = time.monotonic()
+                self.commands.put(cmd)
             except ValueError:
                 log("warn", "ignoring malformed command: " + line[:80])
         self.commands.put({"cmd": "stop"})  # plugin closed our stdin
@@ -313,7 +317,15 @@ class Bridge:
     def apply(self, cmd):
         kind = cmd.get("cmd")
         if kind == "send":
-            self.send_frames(cmd.get("frames", []))
+            # Changes made long ago, while the controller was unreachable, are dropped:
+            # replaying them late would flash old states at the lights. The plugin
+            # re-reads the controller's state after reconnecting.
+            age = time.monotonic() - cmd.get("_at", time.monotonic())
+            if age > STALE_SEND:
+                log("info", "Dropped %d command(s) made %ds ago while the controller was unreachable"
+                    % (len(cmd.get("frames", [])), age))
+            else:
+                self.send_frames(cmd.get("frames", []))
         elif kind == "host":
             self.host = cmd.get("host")
             self.drop("host changed")

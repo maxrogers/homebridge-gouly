@@ -18,8 +18,8 @@ probe(host, key, dev_id)
 
 listen_udp(stop)
     Collects Tuya discovery broadcasts (UDP 6666, 6667, 7000) and asks protocol
-    3.5 devices to announce themselves. Gouly controllers have not been seen
-    broadcasting, but other firmware may; an announcement carries the Device ID,
+    3.5 devices to announce themselves. Gouly controllers announce only
+    occasionally; an announcement carries the Device ID,
     which identifies a device without any key.
 
 Run as a script: configuration JSON {"id", "key", "listen": max seconds,

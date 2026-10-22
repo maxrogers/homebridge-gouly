@@ -141,3 +141,25 @@ test('a device that refuses the key is reported as rejected, not unreachable', a
     conn.stop();
   }
 });
+
+test('sends queued for too long while disconnected are dropped, not replayed', { timeout: 30000 }, async () => {
+  const { read } = setup();
+  process.env.GOULY_STALE_SEND = '1';
+  const lines = [];
+  const log = { debug() {}, info: m => lines.push(m), warn: m => lines.push(m) };
+  const conn = new GoulyConnection({ id: 'bf0123', key: 'k', host: '10.0.0.250', version: '3.4', log });
+  try {
+    conn.start();
+    await new Promise(r => setTimeout(r, 400));
+    conn.send(new ClassicDriver(false).power(false));
+    await new Promise(r => setTimeout(r, 1500)); // older than the 1 s limit
+    conn.setHost('10.0.0.8');
+    await once(conn, 'connected', 10000);
+    await new Promise(r => setTimeout(r, 800));
+    assert.ok(!read().some(e => e.op === 'set'), 'the stale power-off was not sent');
+    assert.ok(lines.some(m => /Dropped 1 command\(s\) made \d+s ago/.test(m)), lines.join('\n'));
+  } finally {
+    delete process.env.GOULY_STALE_SEND;
+    conn.stop();
+  }
+});

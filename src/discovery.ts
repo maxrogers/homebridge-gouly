@@ -1,8 +1,8 @@
 /**
  * Find a controller on the LAN, with or without its Device ID and Local Key.
  *
- * Gouly controllers do not broadcast (no Tuya UDP discovery), and they answer
- * slowly. The approach follows ha-gouly's gouly-keys (patient TCP scan) and
+ * Gouly controllers answer slowly, and their Tuya UDP announcements (which carry
+ * the Device ID) are occasional, so they cannot be relied on alone. The approach follows ha-gouly's gouly-keys (patient TCP scan) and
  * tinytuya's scanner (protocol fingerprinting), plus the cheap extras:
  *   1. List this machine's real LAN interfaces (Docker, VPN and other virtual
  *      interfaces are skipped) and their /24 networks.
@@ -13,7 +13,8 @@
  *   3. Probe each open port (python/gouly_probe.py): without a key, a keyless
  *      fingerprint says whether it behaves like a Tuya device; with a key, a
  *      signed handshake says whether it holds that key. Meanwhile, listen for
- *      Tuya UDP announcements, in case the firmware does send them.
+ *      Tuya UDP announcements; a controller announcing this Device ID is
+ *      identified even when its TCP port is not answering.
  *   4. Label each device by its MAC vendor (Tuya's registered prefixes) and
  *      reverse DNS name, then rank them and explain each in a plain sentence.
  * A missing or wrong key never hides a device: it is listed as probable, with a
@@ -141,6 +142,11 @@ export const TUYA_OUIS = new Set([
   'c0:f8:53', 'c4:82:e1', 'cc:8c:bf', 'd0:32:e7', 'd0:82:e8', 'd0:82:eb', 'd4:a6:51', 'd8:1f:12', 'd8:c8:0c',
   'd8:d6:68', 'd8:fc:92', 'e4:ae:e4', 'f8:17:2d', 'fc:3c:d7', 'fc:67:1f',
 ]);
+
+/** Locally administered MAC (the second bit of the first byte), as phones and computers use for privacy. */
+export function isRandomMac(mac?: string): boolean {
+  return !!mac && (parseInt(mac.slice(0, 2), 16) & 0x02) === 0x02;
+}
 
 export function macVendor(mac?: string): string | undefined {
   return mac && TUYA_OUIS.has(mac.slice(0, 8).toLowerCase()) ? 'Tuya' : undefined;
@@ -364,7 +370,10 @@ const STATUS_ORDER: CandidateStatus[] = ['confirmed', 'connected', 'wrong-key', 
 
 /** Rank and explain one device. Exported for tests. */
 export function describe(c: Omit<Candidate, 'status' | 'note'>, opts: { id?: string; key?: string }): Candidate {
-  const tuyaLike = c.tuya === 'yes' || c.tuya === 'likely' || c.vendor === 'Tuya' || !!c.announcedId;
+  // A randomized ("private") MAC belongs to a phone or computer, never to a Tuya
+  // module, so a closed connection alone ("likely") does not make it Tuya-like.
+  const likely = c.tuya === 'likely' && !isRandomMac(c.mac);
+  const tuyaLike = c.tuya === 'yes' || likely || c.vendor === 'Tuya' || !!c.announcedId;
   const typeName = c.type === 'pro' ? 'Gouly Pro' : c.type === 'classic' ? 'GOULY single-output controller' : '';
   let status: CandidateStatus;
   let note: string;
@@ -376,11 +385,15 @@ export function describe(c: Omit<Candidate, 'status' | 'note'>, opts: { id?: str
     note = `A Tuya device with a different Device ID (${c.announcedId}).`;
   } else if (c.announcedId && opts.id && c.announcedId === opts.id) {
     status = c.key === 'wrong' ? 'wrong-key' : 'probable';
-    note = c.key === 'wrong' ? 'This is your controller (it announced this Device ID), but the Local Key did not work. Get the keys again.'
-      : 'This is your controller (it announced this Device ID). Add the Local Key to connect.';
+    note = c.key === 'wrong' ? 'This is your controller (it announced this Device ID), but it refused the connection. '
+        + 'If the plugin worked with this key recently, unplug the controller for 10 seconds; otherwise get the keys again.'
+      : opts.key ? 'This is your controller (it announced this Device ID), but it is not accepting connections right now. '
+        + 'It may be busy or have a weak Wi-Fi signal; try again in a few minutes.'
+        : 'This is your controller (it announced this Device ID). Add the Local Key to connect.';
   } else if (c.key === 'wrong' && tuyaLike) {
     status = 'wrong-key';
-    note = 'A Tuya device that did not accept this Local Key. If this is your controller, its key has changed: get the keys again.';
+    note = 'A Tuya device that did not accept this Local Key. If this is your controller and the plugin worked with this key '
+      + 'recently, unplug it for 10 seconds; otherwise its key has changed: get the keys again.';
   } else if (tuyaLike) {
     status = 'probable';
     note = 'Probably a Tuya device, like a Gouly controller. Add the Device ID and Local Key to confirm it is yours.';
@@ -549,12 +562,15 @@ async function finishSearch(
       + ' (in Docker, Homebridge needs host networking).');
   } else if (key && wrong) {
     say(`${wrong > 1 ? `Found ${wrong} Tuya devices, but none accepted` : 'Found a Tuya device, but it did not accept'} this Local Key. `
-      + 'If the controller was reset or re-added in the Gouly app, its key changed: get the keys again.');
+      + 'If the plugin worked with this key recently, the controller may be holding an old connection: unplug it for 10 seconds. '
+      + 'Otherwise its key changed (reset or re-added in the Gouly app): get the keys again.');
   } else if (!key) {
     say(`Found ${probable || candidates.length} likely device${(probable || candidates.length) > 1 ? 's' : ''}. `
       + 'Add the Device ID and Local Key, then search again to confirm which one is yours.');
   } else {
-    say('None of these accepted the Device ID and Local Key.');
+    const own = candidates.find(c => id && c.announcedId === id);
+    say(own ? `Your controller announced itself at ${own.ip} but is not accepting connections right now. Try again in a few `
+      + 'minutes; if this keeps happening, check its Wi-Fi signal.' : 'None of these accepted the Device ID and Local Key.');
   }
   return { host, candidates };
 }

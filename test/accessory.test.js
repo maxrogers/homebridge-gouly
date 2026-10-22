@@ -137,3 +137,55 @@ test('recording ignores the plugin\'s own echoes; diagnostics capture the state 
     await wait(300);
   }
 });
+
+test('HomeKit shows No Response once the controller has been unreachable for a while', { timeout: 30000 }, async () => {
+  process.env.GOULY_BRIDGE_EXTRA_PATH = path.join(__dirname, 'fixtures', 'mock_tinytuya');
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'gouly-'));
+  const api = new HomebridgeAPI();
+  api.user.storagePath = () => storage;
+  const { Service: S, Characteristic: C } = api.hap;
+  const log = Object.assign(() => {}, { info() {}, warn() {}, debug() {}, error() {} });
+  const light = new api.platformAccessory('House Lights', api.hap.uuid.generate('nr'));
+  const acc = new GoulyAccessory(api, log, light, { name: 'House Lights', deviceId: 'bfnr', localKey: 'k', host: '10.0.0.5',
+    controllerType: 'classic', patterns: [] }, []);
+  try {
+    await wait(800);
+    const on = light.getService(S.Lightbulb).getCharacteristic(C.On);
+    await on.handleSetRequest(true); // connected: accepted
+    let offline = 5_000;
+    Object.defineProperty(acc.conn, 'offlineMs', { get: () => offline });
+    await on.handleSetRequest(false); // a short drop-out: still accepted (queued)
+    offline = 60_000;
+    await assert.rejects(on.handleSetRequest(true), e => e === api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE || e?.hapStatus === api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  } finally {
+    api.emit('shutdown');
+    await wait(300);
+  }
+});
+
+test('a refused connection after the key worked recently is reported as a stale connection, without a search', { timeout: 30000 }, async () => {
+  process.env.GOULY_BRIDGE_EXTRA_PATH = path.join(__dirname, 'fixtures', 'mock_tinytuya');
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'gouly-'));
+  fs.mkdirSync(path.join(storage, 'gouly'));
+  // the controller reported its state an hour ago (before a restart)
+  fs.writeFileSync(path.join(storage, 'gouly', 'info-bfst.json'),
+    JSON.stringify({ deviceId: 'bfst', lastStateAt: new Date(Date.now() - 3600_000).toISOString() }));
+  const api = new HomebridgeAPI();
+  api.user.storagePath = () => storage;
+  const lines = [];
+  const log = Object.assign(() => {}, { info: m => lines.push(m), warn: m => lines.push(m), debug() {}, error() {} });
+  const light = new api.platformAccessory('House Lights', api.hap.uuid.generate('st'));
+  // the mock refuses the key at 10.0.0.66
+  new GoulyAccessory(api, log, light, { name: 'House Lights', deviceId: 'bfst', localKey: 'k', host: '10.0.0.66',
+    controllerType: 'classic', patterns: [] }, []);
+  try {
+    const deadline = Date.now() + 10000;
+    while (!lines.some(m => /refusing connections/.test(m)) && Date.now() < deadline) await wait(100);
+    assert.ok(lines.some(m => /refusing connections.*unplug the controller for 10 seconds/.test(m)), lines.join('\n'));
+    await wait(1000);
+    assert.ok(!lines.some(m => /searching|checking the network|get the keys again \(see/.test(m)), 'no search, no wrong-key message');
+  } finally {
+    api.emit('shutdown');
+    await wait(300);
+  }
+});

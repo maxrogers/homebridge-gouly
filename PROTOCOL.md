@@ -7,11 +7,17 @@ with Tuya protocol 3.4. The Gouly Pro uses a different command set, documented b
 ## Transport
 
 The controller is a Tuya Wi-Fi module on TCP port 6668. Firmware V50 and V55 use Tuya
-protocol 3.4; the plugin also tries 3.5 and 3.3 automatically if 3.4 is rejected. It does not answer Tuya's
-UDP discovery, so it has to be found by scanning for port 6668 (see Discovery in ARCHITECTURE.md).
+protocol 3.4; the plugin also tries 3.5 and 3.3 automatically if 3.4 is rejected. It sends Tuya UDP announcements (with its Device ID) only occasionally, so
+it is found by scanning for port 6668 as well (see Discovery in ARCHITECTURE.md).
 It is slow to accept connections and to complete the session handshake (allow several seconds).
 Without the key it can still be recognised: like other protocol 3.4 devices it closes the
 connection when sent an unencrypted query, and its Wi-Fi module has a Tuya MAC prefix.
+
+It accepts very few local connections. After a Wi-Fi drop-out it can keep the dead connection
+and refuse new ones (it accepts the TCP connection, then closes it at the session handshake,
+which looks exactly like a wrong key) until it is power-cycled. Its Wi-Fi radio is weak: on
+the edge of 2.4 GHz coverage, routers that disconnect clients below a signal threshold
+(ASUS "Roaming assistant", -70 dBm by default) drop it repeatedly.
 
 | DP | Type | Use |
 |---|---|---|

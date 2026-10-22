@@ -5,6 +5,25 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-10-22
+
+### Fixed
+- A controller that refuses connections after a Wi-Fi drop-out was reported as having a new Local
+  Key. If the key worked within the last day, the log now says the controller is probably holding
+  an old connection and to power-cycle it once, and no network search is run.
+- HomeKit changes made while the controller was unreachable were queued and all replayed when it
+  came back. Changes older than 30 seconds are now dropped, and after 15 seconds offline the Home
+  app shows No Response.
+- Find said "Add the Local Key" for a controller that announced itself while its port was busy;
+  it now says it is not accepting connections right now.
+- Find listed phones and computers with private (randomized) MAC addresses as probable Tuya devices.
+- After a short outage the log said to check the controller is powered; it now says the controller
+  was working recently and has probably dropped off Wi-Fi.
+
+### Changed
+- Docs: the controller does send occasional UDP announcements with its Device ID; troubleshooting
+  for stale connections and weak Wi-Fi.
+
 ## [1.0.3] - 2026-10-18
 
 ### Fixed

@@ -102,7 +102,8 @@ last 5 seconds are never recorded as patterns.
 
 ## Discovery
 
-Gouly controllers do not answer Tuya's UDP discovery and are slow to accept connections, so
+Gouly controllers announce themselves on UDP only occasionally (the announcement carries the
+Device ID, so it identifies the controller without a key) and are slow to accept connections, so
 `src/discovery.ts` combines the methods of ha-gouly's gouly-keys and tinytuya's scanner:
 
 1. **Networks.** The /24 of each real LAN interface. Docker, VPN (Tailscale, WireGuard) and other
@@ -115,7 +116,7 @@ Gouly controllers do not answer Tuya's UDP discovery and are slow to accept conn
    3.4/3.5 devices (Gouly) answer by closing the connection. With a key: a protocol 3.4 session
    handshake signed with it; only a device holding that key answers with a correctly signed reply.
    A 3.3 (and, with AES-GCM available, 3.5) status request is the fallback. Meanwhile it listens on
-   UDP 6666/6667/7000 for announcements (and asks 3.5 devices to announce), in case the firmware does.
+   UDP 6666/6667/7000 for announcements (and asks 3.5 devices to announce).
 4. **Labels.** MAC from the ARP table, matched against Tuya Smart Inc.'s registered prefixes (a
    Tuya module, not proof of Gouly), and the reverse DNS name.
 5. **Ranking.** Each device gets a status and one plain sentence: confirmed (the key works),
@@ -135,7 +136,16 @@ off from 5 minutes to 1 hour.
 A short one turns a slow handshake into "Check device key or version" (Err 914), the same error
 as a wrong key. The bridge connects and negotiates with 5 s and switches the socket to 0.5 s reads
 once the session is up. Err 914 means something answered at the address, so the bridge reports it
-as `rejected` (logged as a key problem) rather than counting it towards `unreachable`.
+as `rejected` rather than counting it towards `unreachable`. If the controller accepted the key
+within the last day (`lastStateAt` in the diagnostics, kept across restarts), a rejection is
+reported as a stale connection (power-cycle the controller once) and no network search is run;
+otherwise as a key problem, followed by one search in case the address now belongs to another
+device.
+
+**While unreachable.** HomeKit writes in the first 15 seconds of an outage are queued; after that
+they fail with No Response, so the Home app shows the real state of things. The bridge drops
+queued sends older than 30 seconds instead of replaying them late, and the plugin re-reads the
+controller's state on reconnecting.
 
 ## Settings UI
 

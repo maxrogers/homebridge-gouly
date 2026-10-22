@@ -5,7 +5,7 @@
  *
  * Saved to <storage>/gouly/info-<deviceId>.json (debounced). Contains no key.
  */
-import { promises as fs } from 'fs';
+import fsSync, { promises as fs } from 'fs';
 import path from 'path';
 
 const RECENT_FRAMES = 150;
@@ -44,6 +44,14 @@ export class ControllerDiagnostics {
   constructor(private readonly file: string, name: string, deviceId: string) {
     this.info = { name, deviceId, updated: new Date().toISOString(), type: 'detecting',
       connects: 0, disconnects: 0, unrecognized: [], events: [], frames: [] };
+    // Carry over when the controller last reported its state, so a restart does not
+    // forget that the key was working (used to tell a stale connection from a wrong key).
+    try {
+      const previous = JSON.parse(fsSync.readFileSync(file, 'utf8')) as Partial<ControllerInfo>;
+      if (previous.deviceId === deviceId && typeof previous.lastStateAt === 'string') this.info.lastStateAt = previous.lastStateAt;
+    } catch {
+      // first run, or an unreadable file
+    }
   }
 
   static fileFor(storagePath: string, deviceId: string): string {

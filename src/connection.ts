@@ -47,6 +47,8 @@ export class GoulyConnection extends EventEmitter {
   private proc?: ChildProcessWithoutNullStreams;
   private host?: string;
   private connected = false;
+  /** When the connection was last lost (or the plugin started); undefined while connected. */
+  private offlineSince: number | undefined = Date.now();
   private stopped = true;
   private restartTimer?: NodeJS.Timeout;
 
@@ -57,6 +59,11 @@ export class GoulyConnection extends EventEmitter {
 
   get isConnected(): boolean {
     return this.connected;
+  }
+
+  /** How long the controller has been unreachable, in ms (0 while connected). */
+  get offlineMs(): number {
+    return this.offlineSince === undefined ? 0 : Date.now() - this.offlineSince;
   }
 
   get currentHost(): string | undefined {
@@ -138,6 +145,7 @@ export class GoulyConnection extends EventEmitter {
   private setDisconnected(reason = 'bridge stopped'): void {
     if (!this.connected) return;
     this.connected = false;
+    this.offlineSince = Date.now();
     this.emit('disconnected', reason);
   }
 
@@ -152,6 +160,7 @@ export class GoulyConnection extends EventEmitter {
     switch (msg.event) {
       case 'connected':
         this.connected = true;
+        this.offlineSince = undefined;
         this.opts.log.info(`Connected to ${msg.host} (protocol ${msg.version ?? this.opts.version})`);
         this.emit('connected', { host: String(msg.host), protocol: String(msg.version ?? this.opts.version) });
         break;

@@ -17,6 +17,10 @@ const DETECT_TIMEOUT_MS = 5_000;
 /** How long the plugin remembers its own frames, so their echoes are not recorded. */
 const OWN_ECHO_MS = 5_000;
 /** Back-off for repeated network searches while a controller is missing. */
+/** A change made in HomeKit within this long of losing the connection is still queued; after it, HomeKit shows No Response. */
+const OFFLINE_GRACE_MS = 15_000;
+/** The key counts as known-good if the controller accepted it this recently. */
+const KEY_TRUSTED_MS = 24 * 60 * 60_000;
 const REDISCOVER_MIN_MS = 5 * 60_000;
 const REDISCOVER_MAX_MS = 60 * 60_000;
 
@@ -126,12 +130,13 @@ export class GoulyAccessory {
     // Lightbulb
     this.light = accessory.getService(S.Lightbulb) ?? accessory.addService(S.Lightbulb, cfg.name);
     this.light.getCharacteristic(C.On).onSet(v => {
+      this.assertReachable();
       this.setOn(v as boolean);
       this.power?.updateCharacteristic(C.On, v as boolean);
     });
-    this.light.getCharacteristic(C.Brightness).onSet(v => this.setBrightness(v as number));
-    this.light.getCharacteristic(C.Hue).onSet(v => this.setHs({ hue: v as number }));
-    this.light.getCharacteristic(C.Saturation).onSet(v => this.setHs({ saturation: v as number }));
+    this.light.getCharacteristic(C.Brightness).onSet(v => { this.assertReachable(); this.setBrightness(v as number); });
+    this.light.getCharacteristic(C.Hue).onSet(v => { this.assertReachable(); this.setHs({ hue: v as number }); });
+    this.light.getCharacteristic(C.Saturation).onSet(v => { this.assertReachable(); this.setHs({ saturation: v as number }); });
     this.light.getCharacteristic(C.ColorTemperature)
       .setProps({ minValue: MIRED_MIN, maxValue: MIRED_MAX })
       .onSet(v => this.setMired(v as number));
@@ -160,6 +165,16 @@ export class GoulyAccessory {
     this.conn.on('disconnected', reason => this.diag.disconnected(reason));
     this.conn.on('unreachable', () => void this.rediscover());
     this.conn.on('rejected', host => {
+      if (this.keyRecentlyWorked()) {
+        // Seen in practice: after a Wi-Fi drop-out the controller keeps the old,
+        // dead connection and refuses new ones until it is restarted. Searching the
+        // network would only add more connection attempts, so just keep retrying.
+        this.diag.event(`${host} refused the connection; the key worked recently, so it is probably holding a stale connection`);
+        this.log.warn(`${this.cfg.name}: the controller at ${host} is refusing connections. The Local Key worked recently, `
+          + 'so it is probably holding on to an old connection after a Wi-Fi drop-out. If this lasts more than a few minutes, '
+          + 'unplug the controller for 10 seconds (once). If that does not help, get the keys again.');
+        return;
+      }
       this.diag.event(`${host} answered but did not accept the Local Key`);
       this.log.warn(`${this.cfg.name}: the device at ${host} answered but did not accept the Local Key. `
         + 'If the controller was reset or re-added in the Gouly app, its key changed: get the keys again (see the plugin settings).');
@@ -179,6 +194,23 @@ export class GoulyAccessory {
   }
 
   private discovering = false;
+
+  /**
+   * HomeKit changes made while the controller is unreachable cannot be delivered,
+   * so report No Response instead of pretending. Short drop-outs are absorbed: the
+   * bridge sends queued changes if it reconnects within its stale limit.
+   */
+  private assertReachable(): void {
+    if (this.conn.offlineMs > OFFLINE_GRACE_MS) {
+      throw new this.api.hap.HapStatusError(this.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
+  }
+
+  /** True when the controller accepted the key (and reported its state) in the last day. */
+  private keyRecentlyWorked(): boolean {
+    const at = this.diag.current.lastStateAt;
+    return !!at && Date.now() - new Date(at).getTime() < KEY_TRUSTED_MS;
+  }
 
   /**
    * Find the controller when its address is unknown, it stops answering (for
@@ -208,7 +240,13 @@ export class GoulyAccessory {
         this.conn.setHost(host);
         return;
       }
-      this.log.warn(`Could not find ${this.cfg.name}. ${explainNotFound(candidates)}`);
+      const since = this.diag.current.lastStateAt;
+      if (!candidates.length && since && Date.now() - new Date(since).getTime() < KEY_TRUSTED_MS) {
+        this.log.warn(`${this.cfg.name} is not reachable right now. It was working ${ago(since)}, so it has probably `
+          + 'dropped off Wi-Fi; the plugin keeps retrying. If this happens often, check the controller\'s Wi-Fi signal.');
+      } else {
+        this.log.warn(`Could not find ${this.cfg.name}. ${explainNotFound(candidates)}`);
+      }
       if (!hint) {
         setTimeout(() => void this.rediscover(), this.rediscoverDelay);
         this.rediscoverDelay = Math.min(this.rediscoverDelay * 2, REDISCOVER_MAX_MS);
@@ -542,6 +580,7 @@ export class GoulyAccessory {
     if (!service.testCharacteristic(C.ConfiguredName)) service.addOptionalCharacteristic(C.ConfiguredName);
     if (!existing) service.setCharacteristic(C.ConfiguredName, name);
     service.getCharacteristic(C.On).onSet(v => {
+      this.assertReachable();
       const on = v as boolean;
       this.setOn(on);
       this.light.updateCharacteristic(C.On, on);
@@ -577,7 +616,7 @@ export class GoulyAccessory {
       service.setCharacteristic(C.Name, p.name);
       if (!service.testCharacteristic(C.ConfiguredName)) service.addOptionalCharacteristic(C.ConfiguredName);
       service.setCharacteristic(C.ConfiguredName, p.name);
-      service.getCharacteristic(C.On).removeOnSet().onSet(v => this.setPattern(p, v as boolean));
+      service.getCharacteristic(C.On).removeOnSet().onSet(v => { this.assertReachable(); this.setPattern(p, v as boolean); });
       service.updateCharacteristic(C.On, false);
       this.patternSwitches.set(subtype, { config: p, service });
     }
@@ -601,4 +640,12 @@ export function explainNotFound(candidates: Candidate[]): string {
     return `Devices at ${likely.join(', ')} answer on the Tuya port but could not be confirmed. Check the Device ID and Local Key.`;
   }
   return 'No devices answered on the Tuya port. Check that it is powered and on the same network as Homebridge.';
+}
+
+/** "5 minutes ago", "3 hours ago". */
+export function ago(iso: string, now = Date.now()): string {
+  const min = Math.max(1, Math.round((now - new Date(iso).getTime()) / 60_000));
+  if (min < 90) return `${min} minute${min === 1 ? '' : 's'} ago`;
+  const h = Math.round(min / 60);
+  return `${h} hour${h === 1 ? '' : 's'} ago`;
 }

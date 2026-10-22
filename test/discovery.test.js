@@ -67,6 +67,13 @@ test('each device gets a plain status and note', () => {
   assert.equal(describe({ ip: 'a', tuya: 'no' }, {}).status, 'possible');
   assert.equal(describe({ ip: 'a', announcedId: 'bf99' }, k).status, 'other');
   assert.equal(describe({ ip: 'a', announcedId: 'bf01', key: 'wrong' }, k).status, 'wrong-key');
+  // a phone with a private (random) MAC that happens to close the connection is not Tuya-like
+  assert.equal(describe({ ip: 'a', mac: '2a:11:22:33:44:55', tuya: 'likely' }, {}).status, 'possible');
+  assert.equal(describe({ ip: 'a', mac: 'c4:82:e1:00:11:22', tuya: 'likely' }, {}).status, 'probable');
+  // the controller announced itself but its port did not answer, with a key entered
+  const busy = describe({ ip: 'a', announcedId: 'bf01' }, k);
+  assert.match(busy.note, /not accepting connections right now/);
+  assert.doesNotMatch(busy.note, /Add the Local Key/);
   for (const c of [wrong, nokey]) assert.ok(!/\u2014/.test(c.note), 'no em dashes');
 });
 
