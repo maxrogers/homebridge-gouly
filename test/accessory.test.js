@@ -189,3 +189,31 @@ test('a refused connection after the key worked recently is reported as a stale 
     await wait(300);
   }
 });
+
+test('a connection that goes silent is dropped and re-opened, without waiting for TCP', { timeout: 30000 }, async () => {
+  process.env.GOULY_BRIDGE_EXTRA_PATH = path.join(__dirname, 'fixtures', 'mock_tinytuya');
+  const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'gouly-'));
+  const api = new HomebridgeAPI();
+  api.user.storagePath = () => storage;
+  const lines = [];
+  const log = Object.assign(() => {}, { info: m => lines.push(m), warn: m => lines.push(m), debug() {}, error() {} });
+  const light = new api.platformAccessory('House Lights', api.hap.uuid.generate('sil'));
+  const acc = new GoulyAccessory(api, log, light, { name: 'House Lights', deviceId: 'bfsil', localKey: 'k', host: '10.0.0.5',
+    controllerType: 'classic', patterns: [] }, []);
+  try {
+    await wait(1200); // connected, and the state query was answered
+    assert.equal(acc.conn.isConnected, true);
+    assert.equal(acc.checkAlive(Date.now() + 60_000), false, 'one quiet minute is normal');
+    const lost = new Promise(r => acc.conn.once('disconnected', reason => r({ reason, offline: acc.conn.offlineMs })));
+    const back = new Promise(r => acc.conn.once('connected', r));
+    assert.equal(acc.checkAlive(Date.now() + 10 * 60_000), true, 'ten silent minutes: reconnect');
+    const { reason, offline } = await lost;
+    assert.match(reason, /no reply/);
+    assert.ok(offline >= 1000, 'the outage is dated from the last reply');
+    assert.ok(lines.some(m => /no reply from the controller for \d+ minutes; reconnecting/.test(m)), lines.join('\n'));
+    await back; // and it comes back
+  } finally {
+    api.emit('shutdown');
+    await wait(300);
+  }
+});

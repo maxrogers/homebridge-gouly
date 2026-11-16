@@ -19,6 +19,8 @@ const OWN_ECHO_MS = 5_000;
 /** Back-off for repeated network searches while a controller is missing. */
 /** A change made in HomeKit within this long of losing the connection is still queued; after it, HomeKit shows No Response. */
 const OFFLINE_GRACE_MS = 15_000;
+/** Shortest silence treated as a dead connection (otherwise 2.5 state-query intervals). */
+const SILENT_MIN_MS = 120_000;
 /** The key counts as known-good if the controller accepted it this recently. */
 const KEY_TRUSTED_MS = 24 * 60 * 60_000;
 const REDISCOVER_MIN_MS = 5 * 60_000;
@@ -97,6 +99,8 @@ export class GoulyAccessory {
   private pendingHs: { hue?: number; saturation?: number } = {};
   private hsTimer?: NodeJS.Timeout;
   private pollTimer?: NodeJS.Timeout;
+  /** Last time the controller sent anything on the current connection (undefined: nothing yet). */
+  private lastHeardAt?: number;
 
   private readonly log: Logger;
 
@@ -159,8 +163,8 @@ export class GoulyAccessory {
       id: cfg.deviceId, key: cfg.localKey, host: cfg.host || undefined, version: cfg.protocolVersion ?? '3.4', pythonPath: cfg.pythonPath, log: this.log,
     });
     this.commands = new CommandScheduler(() => this.driver, frames => this.send(frames));
-    this.conn.on('frame', f => this.handleFrame(f));
-    this.conn.on('switch', on => this.apply({ on }));
+    this.conn.on('frame', f => { this.lastHeardAt = Date.now(); this.handleFrame(f); });
+    this.conn.on('switch', on => { this.lastHeardAt = Date.now(); this.apply({ on }); });
     this.conn.on('connected', ({ host, protocol }) => { this.diag.connected(host, protocol); this.onConnected(); });
     this.conn.on('disconnected', reason => this.diag.disconnected(reason));
     this.conn.on('unreachable', () => void this.rediscover());
@@ -406,6 +410,7 @@ export class GoulyAccessory {
   }
 
   private onConnected(): void {
+    this.lastHeardAt = undefined; // the silence check starts once this connection has answered
     if (this.detecting) {
       // Ask both families; whichever answers with a 0xBB report identifies the controller.
       this.send([...new ClassicDriver(false).query(), ...new ProDriver().query()]);
@@ -422,7 +427,30 @@ export class GoulyAccessory {
     }
     clearInterval(this.pollTimer);
     const every = Math.max(15, this.cfg.pollSeconds ?? 60) * 1000;
-    this.pollTimer = setInterval(() => this.conn.isConnected && this.send(this.driver.query()), every);
+    this.pollTimer = setInterval(() => {
+      if (!this.conn.isConnected || this.checkAlive(Date.now())) return;
+      this.send(this.driver.query());
+    }, every);
+  }
+
+  /**
+   * The controller answers every state query, so a connection that stays silent for
+   * a few query intervals is dead (usually the controller dropped off Wi-Fi). TCP
+   * would take about 15 minutes to notice; reconnect now instead, so HomeKit shows
+   * No Response and the plugin reconnects as soon as the controller is back.
+   * Returns true when it started a reconnect.
+   */
+  private checkAlive(now: number): boolean {
+    if (!this.conn.isConnected || this.lastHeardAt === undefined) return false;
+    const every = Math.max(15, this.cfg.pollSeconds ?? 60) * 1000;
+    const silent = now - this.lastHeardAt;
+    if (silent < Math.max(2.5 * every, SILENT_MIN_MS)) return false;
+    const minutes = Math.round(silent / 60_000);
+    this.diag.event(`no reply for ${minutes} min; reconnecting`);
+    this.log.warn(`${this.cfg.name}: no reply from the controller for ${minutes} minutes; reconnecting`);
+    this.conn.reconnect(`no reply for ${minutes} min`, this.lastHeardAt);
+    this.lastHeardAt = undefined;
+    return true;
   }
 
   private handleFrame(frame: Buffer): void {

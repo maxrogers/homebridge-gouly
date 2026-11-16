@@ -6,6 +6,7 @@ library proven against this controller) and speaks JSON lines with the plugin.
 stdin  (plugin -> bridge), one JSON object per line:
   {"cmd": "send", "frames": ["aaf1...", ...]}   send Gouly frames on DP 101, in order
   {"cmd": "host", "host": "192.0.2.10"}          switch address and reconnect
+  {"cmd": "reconnect", "reason": "..."}           drop the connection and reconnect
   {"cmd": "stop"}                                close and exit
 
 stdout (bridge -> plugin), one JSON object per line:
@@ -329,6 +330,10 @@ class Bridge:
         elif kind == "host":
             self.host = cmd.get("host")
             self.drop("host changed")
+        elif kind == "reconnect":
+            # The plugin heard nothing for too long: the connection is dead even if
+            # TCP has not noticed yet (that takes Linux about 15 minutes).
+            self.drop(cmd.get("reason") or "reconnect requested")
         elif kind == "stop":
             self.running = False
             self.close()

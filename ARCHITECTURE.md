@@ -142,6 +142,11 @@ reported as a stale connection (power-cycle the controller once) and no network 
 otherwise as a key problem, followed by one search in case the address now belongs to another
 device.
 
+**Silent connections.** When the controller drops off Wi-Fi, TCP does not notice for about 15
+minutes. The plugin queries the controller's state every poll interval and the controller always
+answers, so after 2.5 intervals (at least 2 minutes) without anything received it tells the bridge to
+drop the connection and reconnect, dating the outage from the last reply.
+
 **While unreachable.** HomeKit writes in the first 15 seconds of an outage are queued; after that
 they fail with No Response, so the Home app shows the real state of things. The bridge drops
 queued sends older than 30 seconds instead of replaying them late, and the plugin re-reads the

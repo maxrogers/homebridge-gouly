@@ -5,6 +5,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-11-15
+
+### Fixed
+- When the controller silently dropped off Wi-Fi, the plugin kept a dead connection for about 17
+  minutes (until Linux gave up on it): HomeKit changes went nowhere and the Home app did not show
+  No Response. The controller answers every state query, so after about 2.5 query intervals
+  (2.5 minutes by default) without a reply the plugin now drops the connection and reconnects,
+  and the outage counts from the last reply.
+
 ## [1.0.4] - 2026-10-22
 
 ### Fixed

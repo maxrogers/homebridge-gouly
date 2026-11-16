@@ -50,6 +50,7 @@ export class GoulyConnection extends EventEmitter {
   /** When the connection was last lost (or the plugin started); undefined while connected. */
   private offlineSince: number | undefined = Date.now();
   private stopped = true;
+  private silentSince?: number;
   private restartTimer?: NodeJS.Timeout;
 
   constructor(private readonly opts: ConnectionOptions) {
@@ -91,6 +92,16 @@ export class GoulyConnection extends EventEmitter {
     this.host = host;
     if (this.proc) this.write(this.proc, { cmd: 'host', host });
     else if (!this.stopped) this.spawnBridge();
+  }
+
+  /**
+   * Drop the connection and reconnect, for a connection that has gone silent.
+   * silentSince backdates the outage, so HomeKit reports No Response promptly.
+   */
+  reconnect(reason: string, silentSince?: number): void {
+    if (!this.proc || !this.connected) return;
+    this.silentSince = silentSince;
+    this.write(this.proc, { cmd: 'reconnect', reason });
   }
 
   /** Send a group of frames, in order, paced by the bridge. */
@@ -145,7 +156,8 @@ export class GoulyConnection extends EventEmitter {
   private setDisconnected(reason = 'bridge stopped'): void {
     if (!this.connected) return;
     this.connected = false;
-    this.offlineSince = Date.now();
+    this.offlineSince = Math.min(this.silentSince ?? Date.now(), Date.now());
+    this.silentSince = undefined;
     this.emit('disconnected', reason);
   }
 
